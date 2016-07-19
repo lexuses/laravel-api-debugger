@@ -94,24 +94,33 @@ class Debugger {
 	 */
 	private function updateRequest(Request $request, Response $response)
 	{
-		if ($response instanceof JsonResponse && $this->needToUpdateResponse())
+		if ($this->needToUpdateResponse())
 		{
-			$data = $response->getData(true);
+			$data = \GuzzleHttp\json_decode($response->getContent());
+
+			$data = new Collection($data);
+			$sql = null;
+			$dump = null;
 
 			if ($this->collectQueries)
 			{
-				$data['debug']['sql'] = [
+				$sql = [
 					'total_queries' => $this->queries->count(),
 					'queries' => $this->queries,
 				];
 			}
 
-			if ( ! $this->debug->isEmpty())
+			if (!$this->debug->isEmpty())
 			{
-				$data['debug']['dump'] = $this->debug;
+				$dump = $this->debug;
 			}
 
-			$response->setData($data);
+			$data->put('debug', [
+				'sql' => $sql,
+				'dump' => $dump
+			]);
+
+			$response->setContent(\GuzzleHttp\json_encode($data));
 		}
 	}
 
